@@ -1,0 +1,30 @@
+name: Validate
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s tests -v
+      - run: python3 -m compileall -q scripts tests
+      - name: Validate current export if present
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          packs=(packs/*.zip)
+          if ((${#packs[@]} == 0)); then
+            echo 'Template only: no real export was validated.'
+          elif ((${#packs[@]} == 1)); then
+            python3 scripts/release.py --zip "${packs[0]}"
+          else
+            echo 'Keep exactly one current export in packs/; use Git history for older exports.' >&2
+            exit 1
+          fi
