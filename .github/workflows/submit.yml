@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       submit:
-        description: 'Actually submit to CurseForge (false = offline dry-run)'
+        description: 'Actually submit to CurseForge (false = download and validate only)'
         type: boolean
         default: false
         required: true
@@ -13,8 +13,10 @@ concurrency:
   group: curseforge-submit
   cancel-in-progress: false
 jobs:
-  release:
+  preflight:
     if: github.ref == 'refs/heads/main'
+    outputs:
+      export_artifact_id: ${{ steps.export.outputs.artifact-id }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -22,18 +24,59 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Require one tracked export
+      - run: python3 -m unittest discover -s tests -v
+      - run: python3 -m compileall -q scripts tests
+      - name: Fetch reviewed Release asset and validate offline
         shell: bash
         run: |
           set -euo pipefail
-          shopt -s nullglob
-          packs=(packs/*.zip)
-          ((${#packs[@]} == 1)) || { echo 'Exactly one export ZIP is required.' >&2; exit 1; }
-      - name: Offline dry-run
-        if: ${{ !inputs.submit }}
-        run: python3 scripts/release.py --zip packs/*.zip
-      - name: Validate and submit identical bytes once
-        if: ${{ inputs.submit }}
+          mkdir "$RUNNER_TEMP/verified-export"
+          python3 scripts/fetch_export.py --output "$RUNNER_TEMP/verified-export/pack.zip"
+          python3 scripts/release.py --zip "$RUNNER_TEMP/verified-export/pack.zip" --receipt "$RUNNER_TEMP/verified-export/preflight.json" --commit "$GITHUB_SHA"
+      - name: Keep verified export and receipt for this run
+        id: export
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: curseforge-verified-export-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/verified-export/
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+  submit:
+    needs: preflight
+    if: ${{ github.ref == 'refs/heads/main' && inputs.submit }}
+    environment: curseforge
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Require an exact artifact ID from preflight
         env:
+          VERIFIED_ARTIFACT_ID: ${{ needs.preflight.outputs.export_artifact_id }}
+        run: '[[ "$VERIFIED_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]'
+      - name: Download only the verified artifact from this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          artifact-ids: ${{ needs.preflight.outputs.export_artifact_id }}
+          path: ${{ runner.temp }}/verified-export/
+          merge-multiple: true
+      - name: Validate and submit identical bytes once
+        env:
+          CURSEFORGE_SUBMISSION_ENABLED: ${{ vars.CURSEFORGE_SUBMISSION_ENABLED }}
           CURSEFORGE_API_TOKEN: ${{ secrets.CURSEFORGE_API_TOKEN }}
-        run: python3 scripts/release.py --zip packs/*.zip --submit
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CURSEFORGE_SUBMISSION_ENABLED" == true ]] || { echo 'Configure the curseforge environment before enabling submission.' >&2; exit 1; }
+          python3 scripts/release.py --zip "$RUNNER_TEMP/verified-export/pack.zip" --submit --receipt "$RUNNER_TEMP/submission.json" --commit "$GITHUB_SHA"
+      - name: Keep submission receipt even if acceptance is uncertain
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: curseforge-submission-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/submission.json
+          retention-days: 30
+          if-no-files-found: warn

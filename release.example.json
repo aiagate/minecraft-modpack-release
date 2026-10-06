@@ -1,5 +1,6 @@
 {
   "project_id": null,
+  "export_asset_id": null,
   "minecraft_version": "REPLACE_FROM_APP_EXPORT",
   "loader_id": "REPLACE_FROM_APP_EXPORT",
   "game_version_names": ["REPLACE_MINECRAFT_VERSION", "REPLACE_LOADER_NAME", "Client"],

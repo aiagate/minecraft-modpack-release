@@ -1,61 +1,102 @@
-# CurseForge ModPackを検証し、手動で提出する
+# GitHub ActionsからCurseForgeへ提出する
 
-Minecraft 1.21.1・NeoForge 21.1.250のクライアント構成（MOD 20個）と、CurseForgeアプリの正式exportを検証・手動提出する処理を管理します。Python 3.12以降の標準ライブラリを使います。公開済みのMODはファイルIDで参照し、jarや個人の接続情報は収録しません。投稿トークン・有効な提出設定・正式exportは未設定です。
+Minecraft 1.21.1・NeoForge 21.1.250の20MOD構成を管理します。Gitには参照表・設定・スクリプト・テスト・変更履歴を置き、ZIPは置きません。正式提出はCurseForge Appのexportをレビューしてから、GitHub Actionsで検証・提出します。投稿Token、正式export、実際のproject IDは未設定です。
 
-## クライアント構成を再現する
+## GitとZIPの保管先
 
-[構成と導入案内](profiles/create-client-local/README.md)に、固定した20個のファイルIDと確認状況をまとめています。名称は仮です。ゲーム起動・サーバー独自設定は未確認です。
+| 管理対象 | 保管先 |
+| --- | --- |
+| MOD参照manifest・mods.tsv・検証/提出スクリプト・workflow・release.json・CHANGELOG | Git |
+| レビュー前の正式App export | 手元の非共有フォルダ。Git、Release、Actions artifactへ載せない |
+| 全内容レビューとローカル検査を通した正式export | 同じリポジトリの公開Release asset |
+| 同一run内で提出jobへ渡す検証済みexportとreceipt | Actions artifact、30日保持 |
+| 自動生成した取込草案とチェックサム | Validate workflowのbuild artifact、14日保持 |
+
+このリポジトリは公開です。公開Release assetは取得者を限定できず、CurseForge審査より先にGitHubで公開されます。未審査という理由で私的情報を含めてよいわけではありません。公開可否の確認が済むまで、手元の非共有フォルダにだけ保管してください。CurseForge承認までZIPを非公開にしたい運用には、この公開Release asset方式を使わず、別途非公開の保管設計が必要です。
+
+同じリポジトリのasset IDを指定する方式は、外部ストレージ用の資格情報や任意URL設定が不要です。取得処理は公開GETだけで、固定リポジトリのasset APIと許可したGitHub配信ホストへしか接続しません。最新版やファイル名で自動選択せず、IDとレビュー済みSHA256で内容を固定します。Release assetの保管はGitの履歴サイズを増やしません。以前コミットしたZIPは、削除の変更を適用しても過去のGit履歴には残ります。履歴の書換えは行いません。
+
+## 取込草案を生成する
+
+[プロフィール案内](profiles/create-client-local/README.md)と[mods.tsv](profiles/create-client-local/mods.tsv)に20個の固定参照があります。WindowsのCurseForgeでインストール・起動・サーバー入場できたとユーザーから報告されています。CIがゲームを実行した結果ではありません。
 
 ```bash
 python3 -m unittest discover -s tests -v
 python3 scripts/local_pack.py --output /tmp/create-client-local-draft.zip
 ```
 
-生成済みの[取込用ZIP](https://github.com/aiagate/minecraft-modpack-release/raw/refs/heads/feature/create-client-reconstruction-20261006/downloads/create-client-local-draft.zip)も取得できます。WindowsのCurseForgeで **Minecraft → Import → Import Profile .zip → Choose .zip file** を選ぶと、新しいプロフィールへ取り込みます。GitHubの **Code → Download ZIP** はリポジトリ全体のアーカイブで、取込用ZIPとは異なります。Appへの実際の取込・起動はまだ確認していません。
+PR/pushのValidate workflowも同じ草案を生成し、ZIPとSHA256をbuild artifactに保存します。GitHubにログインして対象runのartifactを取得し、artifactの外側のZIPを展開してから、中の `create-client-local-draft.zip` をCurseForgeの **Minecraft → Import → Import Profile .zip → Choose .zip file** で指定します。GitHubの **Code → Download ZIP** はリポジトリ全体で、取込用ZIPとは異なります。
 
-`local_pack.py` はmanifestと一覧の整合性を検証し、ローカル取込用の草案を再現します。jarのダウンロード・実行・公開提出は行いません。この草案を `packs/` に置かず、公開提出には以下の正式export手順を使ってください。
+草案にはroot manifestと空のoverridesだけが入り、jarやconfigをコピーしません。名称・版・authorは仮です。この草案は提出用App exportではありません。提出検査は既知の草案identityを拒否しますが、名前を変えた生成ZIPの由来を証明できるわけではありません。
 
-## 初回設定はアプリのexportから始める
+## ZIPを公開する前のローカル検査
 
-1. CurseForge上の初回プロジェクトは自分で作成し、project IDを控えます。
-2. アプリで配布専用のプロファイルを用意し、必要なファイルだけを選んでexportします。生成されたmanifestは手編集しません。提出用の `release.py` もmanifestの作成・修正・ZIPの再梱包は行いません。
-3. ZIPをGitに追加する**前に**、全収録ファイルを確認します。ワールド、options.txt、ログ、認証情報、個人用サーバー情報を取り除く必要があれば、元プロファイルを修正してアプリから再exportします。設定ファイル内のドメイン名や任意の秘密値は完全には自動判定できないため、人による内容確認が必須です。
-4. 確認したZIPを `packs/pack.zip` に置きます。`packs/` には現行ZIPを1つだけ置き、旧版はGit履歴に残します。
-5. `cp release.example.json release.json` で設定を作り、project ID、export内のMinecraft版とloader ID、表示名を入力します。`game_version_names` はMinecraft版、対応Loader名、`Client` の3つです。公式Game Versions API `/api/game/versions` で正式名を確認してください。実在する版番号はこの例に埋めていません。
-6. `sha256sum packs/pack.zip` の値を `reviewed_sha256` に記入します。この値は内容レビュー済みのZIPを特定するためのものです。レビューせずに値だけ更新しないでください。
-7. `CHANGELOG.md` を今回の変更内容に置き換えます。その全文が提出用変更履歴になります。
+1. CurseForge Appで配布専用プロフィールを作り、正式な名前・版・authorに設定して必要なファイルだけexportします。元のプレイ環境を上書きせず、manifestは手編集しません。
+2. ZIPの全ファイルを人が確認します。ワールド、ログ、options.txt、servers.dat、個人の地図やサーバー情報、認証情報を除きます。修正が必要なら元プロフィールを直してAppから再exportします。検査やレビューが済むまで外部へアップロードしません。
+3. `cp release.example.json release.json` で設定を作り、project ID、export内のMinecraft版・loader ID、表示名、release typeを入力します。公開用ProjectはCurseForgeでユーザーが作成します。`export_asset_id` はこの段階ではnullで構いません。`game_version_names` はMinecraft版、Loader名、Clientの3つです。
+4. 内容レビューを済ませたZIPのSHA256を `reviewed_sha256` に記入し、CHANGELOGを書きます。ハッシュだけ更新してレビューを省略しないでください。
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 scripts/release.py --zip packs/pack.zip
+sha256sum /private/path/pack.zip
+python3 scripts/release.py --zip /private/path/pack.zip
 ```
 
-既定は通信しないdry-runです。project ID、設定、変更履歴、ZIPが未設定なら停止します。成功後にZIP・`release.json`・変更履歴をコミットしてください。`.gitignore` はZIPの内部を検査しません。秘密を一度コミットするとGit履歴に残るため、事前検査が必要です。
+Windowsでは `Get-FileHash -Algorithm SHA256 <ZIPのパス>` でもハッシュを取得できます。`release.py` は既定で通信しないdry-runです。設定・ハッシュ・ZIP構造・プライバシー検査に失敗すれば停止します。成功しても任意の秘密値や配布権をすべて保証するものではありません。再importと動作試験、全内容のレビューを行ってください。
 
-## 投稿はmainから手動実行する
+## Release assetを指定する
 
-このリポジトリは公開です。個人向け資料やサーバー情報は置かず、正式exportを追加する際も全内容を公開可能か確認します。GitHub Actionsの `Manual CurseForge submission` をmainから実行し、まず `submit=false` で確認します。PRとpushの検証workflowは投稿secretを参照しません。
+ローカル検査と公開可否のレビューを終えた正式exportだけを、`aiagate/minecraft-modpack-release` のReleaseへassetとして置きます。Releaseやタグ作成、assetアップロードはユーザーの公開操作です。この準備実装では行っていません。GitにはZIPを追加しません。
 
-実提出を始めるときだけ、自分で発行した投稿用トークンをGitHub Actions Secret `CURSEFORGE_API_TOKEN` に登録し、`submit=true` を選びます。コード・設定・ZIPをレビューした信頼できるmainだけを使ってください。write権限を持つ人はworkflowを書き換えられるため、共同編集者を限定し、運用に応じてmainの保護や環境承認を追加してください。ひな形の作成ではSecrets登録や保護設定の変更は行いません。
+asset IDを `release.json` の `export_asset_id` に正の整数として記入します。IDはGitHubのRelease assets APIで確認できます。GitHub CLIを使う場合の読み取り例です。
 
-投稿ステップ内でZIPをメモリに一度読み込み、検証した同じバイト列を1回だけ送信します。送信先は固定のHTTPSホスト、トークンは `X-Api-Token` ヘッダーだけに設定します。リダイレクト追従・自動再送・応答本文のログ出力はありません。GitHub Actionsの再実行も再投稿になるため、失敗やタイムアウト時は作者画面で受付状況を確認してから判断してください。同時投稿は直列化しますが、重複投稿を永続的に防ぐ仕組みではありません。
+```bash
+gh api repos/aiagate/minecraft-modpack-release/releases/tags/REPLACE_TAG --jq '.assets[] | {id, name}'
+```
 
-APIのfile ID取得は受付成功を意味し、審査完了ではありません。`isMarkedForManualRelease=true` で提出するため、承認後の公開操作も作者画面で行います。サーバーパック提出・Minecraftサーバーへの配置は扱いません。
+`reviewed_sha256` はローカルでレビューしたバイトの値を保持します。assetを置き換えるときは、新しいIDとSHA256をレビューして更新します。別リポジトリ、draftや非公開asset、任意URLの取得は扱いません。README・設定・変更履歴・コードをレビューし、Gitへ入れるのはこれらのテキストだけです。`.gitignore` とCIはZIPのGit追跡を防ぎますが、手元の秘密ファイルを安全にするための代替ではありません。
 
-## 自動検査には保守的な制限がある
+## mainから検証・提出する
 
-検査対象はZIP構造、zip-slip、重複パス、symlink等の特殊ファイル、暗号化、CRC、サイズ、manifestの基本構造、Minecraft版・Loaderと提出メタデータの一致です。ZIPは展開しません。
+GitHub Actionsの **Manual CurseForge submission** をmainで起動します。既定の `submit=false` は、Release assetを取得するGET通信と検証を行いますが、CurseForgeへは提出しません。PR/pushではasset取得も投稿Secret参照も行いません。
 
-このリポジトリ独自の上限は圧縮90 MiB、展開256 MiB、1ファイル32 MiB、1万エントリ、圧縮率200倍です。CurseForge公式の上限を示すものではありません。GitHubへの通常Git保存を想定しています。
+preflightは起動時のcommit SHAをcheckoutし、テスト・compileallを実行します。asset IDとサイズを確認し、最大90 MiBまで読み、レビュー済みSHA256とZIP内容を検査してから保存します。検査に失敗したZIPはartifactへアップロードしません。検証済みZIPとreceiptを同一runのartifactに保存し、その正確なartifact IDをsubmit jobへ渡します。
 
-初期版ではoverrideはUTF-8テキストだけを許可し、JAR・入れ子アーカイブ・バイナリを拒否します。URL、IPアドレス、秘密値らしい記述も拒否するため、正当な公開URL等で停止する場合があります。必要なら対象ファイルと配布権を確認し、検証方針を明示的に変更してください。検査を通すためにmanifestを加工してはいけません。
+submit jobは同じcommit SHAをcheckoutします。前段のartifact IDが欠けていれば停止し、同じrunのそのartifactだけを取得します。Releaseから再取得せず、受け取ったZIPを同じ設定とSHA256で再検証してから、検証したメモリ内の同一バイトを1回だけ提出します。Artifactを差し替えても期待SHA256との不一致なら停止します。変更されたmain設定や別runのartifactを自動採用しません。
 
-自動検査はアプリ生成の真正性、任意の秘密値、全MODの掲載状態・互換性・配布許可、実ゲームでの起動を保証しません。MODの参照先・Loaderタグ・配布権は提出前に人が確認し、アプリへの再importと起動試験を行ってください。`tests/` のmanifestは検査用の合成fixtureで、配布用exportではありません。
+## 投稿Tokenと環境の初回設定
 
-## 参照した公式仕様
+実提出を始めるときだけ、ユーザー自身で設定します。Tokenはチャット、コード、設定、ZIPへ貼り付けないでください。
 
-2026-10-04確認。
+1. CurseForgeでModPack Projectを作りproject IDを設定します。英語の公開名と説明、400×400の画像などの審査要件も満たします。初回ファイルのAPI受付はこの実装では未検証です。
+2. [Authors CurseForge](https://authors.curseforge.com/)のAPI Tokensで投稿用Tokenを発行します。MOD検索用catalog APIキーとは別です。
+3. GitHub **Settings → Environments** で `curseforge` を作成し、deployment branchをmainに限定します。必要ならRequired reviewersを設定します。一人で運用する場合、Prevent self-reviewを有効にすると自分では承認できない点を確認してください。
+4. environmentのSecret `CURSEFORGE_API_TOKEN` とVariable `CURSEFORGE_SUBMISSION_ENABLED=true` を設定します。未設定では提出を停止します。environment名を書くことだけでは承認ルールは作成されません。[GitHubの環境設定手順](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments)を確認してください。
+5. dry-runのZIPとreceiptを確認し、mainで `submit=true` を指定します。承認ルールを設定した場合は提出jobの承認が必要です。
 
-- [CurseForge Upload API](https://support.curseforge.com/support/solutions/articles/9000197321-curseforge-upload-api): multipartのmetadata/file、認証ヘッダー、版名指定、受付file ID、手動公開設定。
-- [Moderation Policies](https://support.curseforge.com/support/solutions/articles/9000197279-project-and-modpack-moderation-policies): アプリ生成形式、manifest手編集禁止、Loaderの整合性、収録MODの配布条件。審査に合わせたプロジェクト説明や画像の用意も必要です。
-- [GitHub Actions secure use](https://docs.github.com/en/actions/reference/security/secure-use): 最小権限、Actionの完全SHA固定、信頼できるコードだけにSecretsを渡す運用。
+write権限のある人はworkflowを書き換えられるため、共同編集者を限定し、main保護とコードレビューも運用に合わせて設定します。
+
+## 受付結果と再実行
+
+receiptはversion、source commit、Release asset ID、ZIP SHA256、project ID、状態、成功時file IDを記録します。TokenやAPI応答本文は記録しません。`validated` は検査成功、`submitted` はAPI受付成功、`submission_unconfirmed` は受付未確認です。API成功は提出済みであり公開済みではありません。`isMarkedForManualRelease=true` を維持するため、審査承認後の公開は作者画面で操作します。
+
+提出先は固定HTTPSホストで、認証はX-Api-Tokenヘッダーだけです。POSTのリダイレクト追従と自動再送はありません。タイムアウト、runner中断、receiptやartifact保存の失敗ではPOSTが成立している可能性があるため、作者画面で受付状況を確認するまで再実行しないでください。concurrencyとcancel-in-progress:falseは同時提出を直列化しますが、手動再実行の重複提出を永続的に防ぎません。
+
+現在の提出トリガーはworkflow_dispatchだけです。将来タグ起動を追加するなら、レビュー済みmain commitへのタグ、タグ保護、環境のタグ許可と版整合性を確認します。サーバーパック提出やMinecraftサーバーへの配置は扱いません。
+
+## 検査の制限
+
+ZIPは展開せず、構造、危険なパス、重複、symlink、暗号化、CRC、サイズ、manifest、Minecraft/Loaderと提出設定を検査します。ローカル方針の上限は圧縮90 MiB・展開256 MiB・1ファイル32 MiB・1万エントリ・圧縮率200倍で、CurseForge公式上限ではありません。
+
+overridesはUTF-8テキストだけを許可し、jar、入れ子アーカイブ、バイナリ、私的情報や接続先らしい記述を拒否します。manifest全体とmodlist.htmlも検査し、modlist内の所定の公開CurseForgeリンクだけを例外として許可します。正当な設定で停止した場合も、manifestを加工して通そうとせず、ファイル・権利・検査方針をレビューしてください。
+
+App生成の真正性、任意の秘密値や難読化、全MODの掲載状態・互換性・配布許可、起動動作は完全には検証できません。testsのmanifestは合成fixtureです。
+
+## 確認した公式仕様
+
+2026-10-06原文確認。
+
+- [CurseForge Upload API](https://support.curseforge.com/support/solutions/articles/9000197321-curseforge-api): metadata/file、認証、版名、受付file ID、手動公開。
+- [提出ZIP形式](https://support.curseforge.com/support/solutions/articles/9000198500-exporting-a-modpack-for-curseforge-project-submission): root manifestとoverrides、MOD参照、第三者MODの条件。
+- [審査規約](https://support.curseforge.com/support/solutions/articles/9000197279-project-and-modpack-moderation-policies): App作成と生成manifest手編集禁止を明記しています。動的生成ZIPの正式提出は実装しません。
+- [GitHub Release assets API](https://docs.github.com/en/rest/releases/assets): asset IDによる公開GET、200/302、IDとサイズ。
+- [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases): Release assetはGitの追跡ファイルとは別に保管されます。

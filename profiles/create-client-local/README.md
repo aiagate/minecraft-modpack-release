@@ -2,13 +2,13 @@
 
 Minecraft Java Edition **1.21.1**、NeoForge **21.1.250**、MOD **20個**のクライアント構成です。名称と版は仮で、正式な公開名は未設定です。[mods.tsv](mods.tsv)に正確なファイル名、projectID/fileID、公式配布ページ、Environmentとライセンス表示を記録しています。[manifest.json](manifest.json)はその20個を固定したローカル再現用の参照表です。
 
-## Windowsで生成済みZIPを取り込む
+## Windowsで取込草案を使う
 
-[取込用ZIPをダウンロード](https://github.com/aiagate/minecraft-modpack-release/raw/refs/heads/feature/create-client-reconstruction-20261006/downloads/create-client-local-draft.zip)し、CurseForgeの **Minecraft → Import → Import Profile .zip → Choose .zip file** でそのZIPを選びます。[公式手順](https://support.curseforge.com/support/solutions/articles/9000198501-exporting-and-importing-modpacks)では新しいプロフィールとして作成されます。既存のプロフィールフォルダへ展開したり、設定をコピーして上書きしたりする必要はありません。取込後にMinecraft 1.21.1 / NeoForge 21.1.250 / MOD 20個を照合します。
+ローカル生成か、GitHub ActionsのValidate workflowのbuild artifactを使います。PR/pushで構成を検査し、`create-client-local-draft.zip` とSHA256を14日保持します。リポジトリ内ではZIPを追跡しません。
 
-GitHubの **Code → Download ZIP** はリポジトリ全体のアーカイブです。そのままImportせず、このページの取込用ZIPを使ってください。GitHubのファイル画面で取得する場合は、ZIPファイルの **Download raw file** を選びます。CI artifactやGitHub Releaseとしての配布は行っていません。
+ArtifactのダウンロードにはGitHubログインが必要です。取得した外側のZIPを展開し、中の `create-client-local-draft.zip` をCurseForgeの **Minecraft → Import → Import Profile .zip → Choose .zip file** で指定します。[公式手順](https://support.curseforge.com/support/solutions/articles/9000198501-exporting-and-importing-modpacks)では新しいプロフィールとして作成されます。既存プロフィールへ展開して上書きする必要はありません。取込後にMinecraft 1.21.1 / NeoForge 21.1.250 / MOD 20個を照合します。
 
-ZIPは718 bytesで、SHA256は `048948e98b66f9d2057475e3f16027425700087251dab46f6054d085ed20d455` です。小さいのはMOD jarを含めず、CurseForge上の20個のファイルをmanifestで参照するためです。CIでは再生成したZIP内の全ファイル内容との完全一致と、配布ZIPのSHA256を確認します。圧縮バイトは実行環境のzlib版で変わることがあります。取込と起動は未確認です。
+GitHubの **Code → Download ZIP** はリポジトリ全体で、取込用ZIPではありません。Artifact期限切れの場合は下記スクリプトで生成してください。Windowsでのインストール・起動・サーバー入場はユーザーから成功報告を受けています。CIがゲームを起動した結果ではありません。
 
 ## CurseForge Appで構成を手動再現する
 
@@ -22,13 +22,13 @@ ZIPは718 bytesで、SHA256は `048948e98b66f9d2057475e3f16027425700087251dab46f
 python3 scripts/local_pack.py --output /tmp/create-client-local-draft.zip
 ```
 
-出力はrootの `manifest.json` と空の `overrides/` のみです。CurseForgeのImportで使う形式の草案ですが、Appへの実際の取込は未検証です。生成処理はMODのダウンロードや実行をしません。生成ZIPを正式export用の `packs/` に置かないでください。`downloads/` の固定草案とSHA256はこの生成処理の結果で、構成変更時はZIPとハッシュを更新してCIの内容一致確認を通します。
+出力はrootの `manifest.json` と空の `overrides/` のみです。CurseForgeのImportで使う形式の草案です。Windowsでの取込と動作はユーザー報告で確認しています。生成処理はMODのダウンロードや実行をしません。生成草案は正式提出へ使いません。構成変更時はmanifestとmods.tsvを更新し、CIが取込ZIPとチェックサムを生成します。ZIPをGitへ追加する必要はありません。
 
 ## 確認できたことと残る確認
 
 2026-10-06時点で、全20件の公式CurseForgeファイルページのファイル名、Minecraft版、NeoForge、projectID/fileIDを照合しました。構成と参照表の整合性はCIで確認します。ファイルの掲載状態や互換性をCIがオンラインで確認するわけではありません。
 
-- ゲーム起動、20個の実ダウンロード、サーバー接続、独自設定との一致は未確認です。参照構成にconfig/defaultconfigsはなく、設定を推測して追加していません。
+- ユーザーからWindowsのCurseForgeでインストール・ゲーム起動・サーバー入場の成功報告を受けています。これはユーザー報告で、CIの実行結果ではありません。参照構成にconfig/defaultconfigsはなく、設定を推測して追加していません。提出用exportの内容レビューと独自設定との一致は別途確認します。
 - Inventory Profiles NextとlibIPNは公式EnvironmentがClientです。CreateとRefined StorageはNot Set、残り16件はClient & Serverです。これはクライアント構成であり、同じ20個をそのままサーバーへ入れる手順ではありません。
 - Flywheel/Ponder、FlightLib、Common Networkingなどは指定jarに同梱されるため、別の版を追加していません。jar内ライブラリの再帰的な依存版・ロード順やゲーム内の動作は未検証です。
 - Create: Stuff & Additionsの指定ファイルはBetaです。Mechanical Extruderはファイル名2.2.2に対し、内部版が1.21.1-2.2.1-6.0.10です。指定ファイルを保持しています。

@@ -17,5 +17,3 @@ server.properties
 secrets/
 credentials*
 *.zip
-!packs/*.zip
-!downloads/create-client-local-draft.zip
