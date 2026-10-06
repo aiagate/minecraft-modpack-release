@@ -153,6 +153,8 @@ def validate(blob, config):
         need(manifest.get('overrides') == 'overrides', 'unsupported overrides directory')
         for field in ('name', 'version', 'author'):
             need(isinstance(manifest.get(field), str) and manifest[field].strip(), 'manifest identity missing')
+        # Keep the former draft name blocked; the current public pack name is
+        # valid for App exports, while draft version/author still block previews.
         need(manifest['name'] != 'Create Client Local Draft' and
              not manifest['version'].startswith('0.0.0-local.') and
              manifest['author'] != 'Local assembly (provisional)',
@@ -196,7 +198,7 @@ def submit(blob, config, meta, token, connection_factory=http.client.HTTPSConnec
     body = (f'--{boundary}\r\nContent-Disposition: form-data; name="metadata"\r\n'
             'Content-Type: application/json\r\n\r\n').encode() + json.dumps(meta).encode()
     body += (f'\r\n--{boundary}\r\nContent-Disposition: form-data; name="file"; '
-             'filename="modpack.zip"\r\nContent-Type: application/zip\r\n\r\n').encode()
+             'filename="okd-server-modpack.zip"\r\nContent-Type: application/zip\r\n\r\n').encode()
     body += blob + f'\r\n--{boundary}--\r\n'.encode()
     conn = connection_factory(HOST, timeout=120)
     try:

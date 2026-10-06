@@ -1,12 +1,12 @@
-# Create Client Local Draft
+# OKD Server Modpack
 
-Minecraft Java Edition **1.21.1**、NeoForge **21.1.250**、MOD **20個**のクライアント構成です。名称と版は仮で、正式な公開名は未設定です。[mods.tsv](mods.tsv)に正確なファイル名、projectID/fileID、公式配布ページ、Environmentとライセンス表示を記録しています。[manifest.json](manifest.json)はその20個を固定したローカル再現用の参照表です。
+Minecraft Java Edition **1.21.1**、NeoForge **21.1.250**、MOD **20個**のクライアント構成です。表示名は **OKD Server Modpack**、slugは `okd-server-modpack` です。サーバー参加用クライアントの取込草案で、専用サーバーを実行するZIPではありません。版とauthorは草案用の仮値です。[mods.tsv](mods.tsv)に正確なファイル名、projectID/fileID、公式配布ページ、Environmentとライセンス表示を記録しています。[manifest.json](manifest.json)はその20個を固定したローカル再現用の参照表です。
 
 ## Windowsで取込草案を使う
 
-ローカル生成か、GitHub ActionsのValidate workflowのbuild artifactを使います。PR/pushで構成を検査し、`create-client-local-draft.zip` とSHA256を14日保持します。リポジトリ内ではZIPを追跡しません。
+ローカル生成か、GitHub ActionsのValidate workflowのbuild artifactを使います。PR/pushで構成を検査し、`okd-server-modpack-import-preview.zip` とSHA256を14日保持します。リポジトリ内ではZIPを追跡しません。
 
-ArtifactのダウンロードにはGitHubログインが必要です。取得した外側のZIPを展開し、中の `create-client-local-draft.zip` をCurseForgeの **Minecraft → Import → Import Profile .zip → Choose .zip file** で指定します。[公式手順](https://support.curseforge.com/support/solutions/articles/9000198501-exporting-and-importing-modpacks)では新しいプロフィールとして作成されます。既存プロフィールへ展開して上書きする必要はありません。取込後にMinecraft 1.21.1 / NeoForge 21.1.250 / MOD 20個を照合します。
+ArtifactのダウンロードにはGitHubログインが必要です。取得した外側のZIPを展開し、中の `okd-server-modpack-import-preview.zip` をCurseForgeの **Minecraft → Import → Import Profile .zip → Choose .zip file** で指定します。[公式手順](https://support.curseforge.com/support/solutions/articles/9000198501-exporting-and-importing-modpacks)では新しいプロフィールとして作成されます。既存プロフィールへ展開して上書きする必要はありません。取込後にMinecraft 1.21.1 / NeoForge 21.1.250 / MOD 20個を照合します。
 
 GitHubの **Code → Download ZIP** はリポジトリ全体で、取込用ZIPではありません。Artifact期限切れの場合は下記スクリプトで生成してください。Windowsでのインストール・起動・サーバー入場はユーザーから成功報告を受けています。CIがゲームを起動した結果ではありません。
 
@@ -19,7 +19,7 @@ GitHubの **Code → Download ZIP** はリポジトリ全体で、取込用ZIP�
 必要ならリポジトリのルートで、ローカル取込用ZIPを生成できます。Python 3.12以降の標準ライブラリだけを使用し、ネットワーク通信はありません。
 
 ```bash
-python3 scripts/local_pack.py --output /tmp/create-client-local-draft.zip
+python3 scripts/local_pack.py --output /tmp/okd-server-modpack-import-preview.zip
 ```
 
 出力はrootの `manifest.json` と空の `overrides/` のみです。CurseForgeのImportで使う形式の草案です。Windowsでの取込と動作はユーザー報告で確認しています。生成処理はMODのダウンロードや実行をしません。生成草案は正式提出へ使いません。構成変更時はmanifestとmods.tsvを更新し、CIが取込ZIPとチェックサムを生成します。ZIPをGitへ追加する必要はありません。

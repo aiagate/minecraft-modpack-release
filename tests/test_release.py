@@ -40,6 +40,19 @@ class ReleaseTests(unittest.TestCase):
         b, c = self.fixture({'overrides/config/example.toml': 'enabled = true'})
         self.assertEqual(r.validate(b, c), c['reviewed_sha256'])
 
+    def test_pack_display_name_allowed_but_all_known_draft_markers_rejected(self):
+        # The public name may be used by a genuine App export. Draft version/author
+        # and the former draft name independently remain submission blockers.
+        b, c = self.fixture(change=lambda m: m.update(name='OKD Server Modpack'))
+        self.assertEqual(r.validate(b, c), c['reviewed_sha256'])
+        for identity in ({'name': 'Create Client Local Draft'},
+                         {'name': 'OKD Server Modpack', 'version': '0.0.0-local.20260913'},
+                         {'name': 'OKD Server Modpack', 'author': 'Local assembly (provisional)'}):
+            b, c = self.fixture(change=lambda m: m.update(identity))
+            with self.subTest(identity=identity), self.assertRaisesRegex(
+                    r.Invalid, 'local reconstruction draft'):
+                r.validate(b, c)
+
     def test_paths_and_private_files(self):
         for name in ('../escape', '/absolute', 'overrides/../escape',
                      'overrides\\escape', 'C:/escape', 'wrapper/manifest.json',
@@ -132,6 +145,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(method, 'POST')
         self.assertEqual(path, '/api/projects/1/upload-file')
         self.assertIn(b, body)
+        self.assertIn(b'filename="okd-server-modpack.zip"', body)
         self.assertNotIn(b'dummy-token', body)
         self.assertEqual(headers['X-Api-Token'], 'dummy-token')
         conn.request.assert_called_once()
@@ -172,8 +186,8 @@ class ReleaseTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         import local_pack
         b = local_pack.build(local_pack.validate_profile(
-            (root / 'profiles/create-client-local/manifest.json').read_bytes(),
-            (root / 'profiles/create-client-local/mods.tsv').read_text()))
+            (root / 'profiles/okd-server-modpack/manifest.json').read_bytes(),
+            (root / 'profiles/okd-server-modpack/mods.tsv').read_text()))
         c = {'project_id': 1, 'export_asset_id': None, 'minecraft_version': '1.21.1',
              'loader_id': 'neoforge-21.1.250',
              'game_version_names': ['1.21.1', 'NeoForge', 'Client'],

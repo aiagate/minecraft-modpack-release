@@ -23,17 +23,17 @@ jobs:
               raise SystemExit('ZIP binaries belong in Release assets or Actions artifacts, not Git.')
           PY
       - name: Build local reconstruction draft offline
-        run: python3 scripts/local_pack.py --output "$RUNNER_TEMP/create-client-local-draft.zip"
+        run: python3 scripts/local_pack.py --output "$RUNNER_TEMP/okd-server-modpack-import-preview.zip"
       - name: Write checksum for import draft
         run: |
           cd "$RUNNER_TEMP"
-          sha256sum create-client-local-draft.zip > create-client-local-draft.zip.sha256
+          sha256sum okd-server-modpack-import-preview.zip > okd-server-modpack-import-preview.zip.sha256
       - name: Keep import draft as a build artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: create-client-local-draft-${{ github.run_id }}-${{ github.run_attempt }}
+          name: okd-server-modpack-import-preview-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/create-client-local-draft.zip
-            ${{ runner.temp }}/create-client-local-draft.zip.sha256
+            ${{ runner.temp }}/okd-server-modpack-import-preview.zip
+            ${{ runner.temp }}/okd-server-modpack-import-preview.zip.sha256
           retention-days: 14
           if-no-files-found: error

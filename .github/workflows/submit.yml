@@ -31,13 +31,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir "$RUNNER_TEMP/verified-export"
-          python3 scripts/fetch_export.py --output "$RUNNER_TEMP/verified-export/pack.zip"
-          python3 scripts/release.py --zip "$RUNNER_TEMP/verified-export/pack.zip" --receipt "$RUNNER_TEMP/verified-export/preflight.json" --commit "$GITHUB_SHA"
+          python3 scripts/fetch_export.py --output "$RUNNER_TEMP/verified-export/okd-server-modpack.zip"
+          python3 scripts/release.py --zip "$RUNNER_TEMP/verified-export/okd-server-modpack.zip" --receipt "$RUNNER_TEMP/verified-export/preflight.json" --commit "$GITHUB_SHA"
       - name: Keep verified export and receipt for this run
         id: export
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: curseforge-verified-export-${{ github.run_id }}-${{ github.run_attempt }}
+          name: okd-server-modpack-verified-export-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/verified-export/
           compression-level: 0
           retention-days: 30
@@ -71,12 +71,12 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$CURSEFORGE_SUBMISSION_ENABLED" == true ]] || { echo 'Configure the curseforge environment before enabling submission.' >&2; exit 1; }
-          python3 scripts/release.py --zip "$RUNNER_TEMP/verified-export/pack.zip" --submit --receipt "$RUNNER_TEMP/submission.json" --commit "$GITHUB_SHA"
+          python3 scripts/release.py --zip "$RUNNER_TEMP/verified-export/okd-server-modpack.zip" --submit --receipt "$RUNNER_TEMP/submission.json" --commit "$GITHUB_SHA"
       - name: Keep submission receipt even if acceptance is uncertain
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: curseforge-submission-${{ github.run_id }}-${{ github.run_attempt }}
+          name: okd-server-modpack-submission-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/submission.json
           retention-days: 30
           if-no-files-found: warn

@@ -1,6 +1,6 @@
-# GitHub ActionsからCurseForgeへ提出する
+# OKD Server Modpack
 
-Minecraft 1.21.1・NeoForge 21.1.250の20MOD構成を管理します。Gitには参照表・設定・スクリプト・テスト・変更履歴を置き、ZIPは置きません。正式提出はCurseForge Appのexportをレビューしてから、GitHub Actionsで検証・提出します。投稿Token、正式export、実際のproject IDは未設定です。
+**OKD Server Modpack** はサーバー参加用クライアントの取込パックです。専用サーバーを実行するZIPではありません。Minecraft 1.21.1・NeoForge 21.1.250の20MOD構成を管理します。Gitには参照表・設定・スクリプト・テスト・変更履歴を置き、ZIPは置きません。正式提出はCurseForge Appのexportをレビューしてから、GitHub Actionsで検証・提出します。投稿Token、正式export、実際のproject IDは未設定です。
 
 ## GitとZIPの保管先
 
@@ -16,18 +16,24 @@ Minecraft 1.21.1・NeoForge 21.1.250の20MOD構成を管理します。Gitには
 
 同じリポジトリのasset IDを指定する方式は、外部ストレージ用の資格情報や任意URL設定が不要です。取得処理は公開GETだけで、固定リポジトリのasset APIと許可したGitHub配信ホストへしか接続しません。最新版やファイル名で自動選択せず、IDとレビュー済みSHA256で内容を固定します。Release assetの保管はGitの履歴サイズを増やしません。以前コミットしたZIPは、削除の変更を適用しても過去のGit履歴には残ります。履歴の書換えは行いません。
 
+## 命名と旧プレビュー
+
+表示名は `OKD Server Modpack`、プロフィールのパスと配布slugは `okd-server-modpack` に統一します。取込草案は `okd-server-modpack-import-preview.zip` とし、正式提出用の一時ZIPとmultipartのファイル名は `okd-server-modpack.zip` です。`Server` は参加先を示し、サーバー実行パックを意味しません。正式App exportの名前はApp上で設定し、生成manifestを手編集しません。
+
+[旧取込プレビュー](https://github.com/aiagate/minecraft-modpack-release/releases/tag/preview-create-client-20261006-9f7671a)は履歴として残します。改名版は草案manifestの表示名だけを変え、20件のMOD参照・版・author・空のoverridesを維持します。ZIPのバイトとSHA256は変わるため、改名版のチェックサムで検証してください。旧リンク・タグ・assetは削除や上書きをしません。
+
 ## 取込草案を生成する
 
-[プロフィール案内](profiles/create-client-local/README.md)と[mods.tsv](profiles/create-client-local/mods.tsv)に20個の固定参照があります。WindowsのCurseForgeでインストール・起動・サーバー入場できたとユーザーから報告されています。CIがゲームを実行した結果ではありません。
+[プロフィール案内](profiles/okd-server-modpack/README.md)と[mods.tsv](profiles/okd-server-modpack/mods.tsv)に20個の固定参照があります。WindowsのCurseForgeでインストール・起動・サーバー入場できたとユーザーから報告されています。CIがゲームを実行した結果ではありません。
 
 ```bash
 python3 -m unittest discover -s tests -v
-python3 scripts/local_pack.py --output /tmp/create-client-local-draft.zip
+python3 scripts/local_pack.py --output /tmp/okd-server-modpack-import-preview.zip
 ```
 
-PR/pushのValidate workflowも同じ草案を生成し、ZIPとSHA256をbuild artifactに保存します。GitHubにログインして対象runのartifactを取得し、artifactの外側のZIPを展開してから、中の `create-client-local-draft.zip` をCurseForgeの **Minecraft → Import → Import Profile .zip → Choose .zip file** で指定します。GitHubの **Code → Download ZIP** はリポジトリ全体で、取込用ZIPとは異なります。
+PR/pushのValidate workflowも同じ草案を生成し、ZIPとSHA256をbuild artifactに保存します。GitHubにログインして対象runのartifactを取得し、artifactの外側のZIPを展開してから、中の `okd-server-modpack-import-preview.zip` をCurseForgeの **Minecraft → Import → Import Profile .zip → Choose .zip file** で指定します。GitHubの **Code → Download ZIP** はリポジトリ全体で、取込用ZIPとは異なります。
 
-草案にはroot manifestと空のoverridesだけが入り、jarやconfigをコピーしません。名称・版・authorは仮です。この草案は提出用App exportではありません。提出検査は既知の草案identityを拒否しますが、名前を変えた生成ZIPの由来を証明できるわけではありません。
+草案にはroot manifestと空のoverridesだけが入り、jarやconfigをコピーしません。表示名は `OKD Server Modpack`、slugは `okd-server-modpack` です。版とauthorは草案用の仮値です。この草案は提出用App exportではありません。提出検査は既知の草案identityを拒否しますが、名前を変えた生成ZIPの由来を証明できるわけではありません。
 
 ## ZIPを公開する前のローカル検査
 
@@ -37,8 +43,8 @@ PR/pushのValidate workflowも同じ草案を生成し、ZIPとSHA256をbuild ar
 4. 内容レビューを済ませたZIPのSHA256を `reviewed_sha256` に記入し、CHANGELOGを書きます。ハッシュだけ更新してレビューを省略しないでください。
 
 ```bash
-sha256sum /private/path/pack.zip
-python3 scripts/release.py --zip /private/path/pack.zip
+sha256sum /private/path/okd-server-modpack.zip
+python3 scripts/release.py --zip /private/path/okd-server-modpack.zip
 ```
 
 Windowsでは `Get-FileHash -Algorithm SHA256 <ZIPのパス>` でもハッシュを取得できます。`release.py` は既定で通信しないdry-runです。設定・ハッシュ・ZIP構造・プライバシー検査に失敗すれば停止します。成功しても任意の秘密値や配布権をすべて保証するものではありません。再importと動作試験、全内容のレビューを行ってください。

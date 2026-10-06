@@ -11,8 +11,8 @@ import zipfile
 
 from release import Invalid, need, parse_json, positive
 
-PROFILE = Path(__file__).resolve().parents[1] / 'profiles' / 'create-client-local'
-IDENTITY = {'name': 'Create Client Local Draft',
+PROFILE = Path(__file__).resolve().parents[1] / 'profiles' / 'okd-server-modpack'
+IDENTITY = {'name': 'OKD Server Modpack',
             'version': '0.0.0-local.20260913', 'author': 'Local assembly (provisional)'}
 COLUMNS = ['filename', 'projectID', 'fileID', 'environment', 'license_label', 'file_page']
 
