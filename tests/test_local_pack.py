@@ -30,13 +30,20 @@ class LocalPackTests(unittest.TestCase):
             self.assertEqual(json.loads(archive.read('manifest.json')), self.manifest)
             self.assertEqual(archive.read('overrides/'), b'')
 
-    def test_download_matches_generated_bytes_and_checksum(self):
+    def test_download_matches_generated_content_and_checksum(self):
         manifest = p.validate_profile(self.raw, self.catalogue)
         root = p.PROFILE.parents[1]
         archive = root / 'downloads' / 'create-client-local-draft.zip'
         checksum = root / 'downloads' / 'create-client-local-draft.zip.sha256'
         blob = archive.read_bytes()
-        self.assertEqual(blob, p.build(manifest))
+        # Deflate bytes can vary across zlib versions; compare all uncompressed
+        # entries exactly and independently check the shipped archive's checksum.
+        with zipfile.ZipFile(io.BytesIO(blob)) as shipped, \
+                zipfile.ZipFile(io.BytesIO(p.build(manifest))) as generated:
+            self.assertEqual(shipped.namelist(), generated.namelist())
+            self.assertIsNone(shipped.testzip())
+            for name in generated.namelist():
+                self.assertEqual(shipped.read(name), generated.read(name))
         self.assertEqual(len(blob), 718)
         self.assertEqual(checksum.read_text(encoding='utf-8'),
                          hashlib.sha256(blob).hexdigest() + '  create-client-local-draft.zip\n')

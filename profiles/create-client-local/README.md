@@ -8,7 +8,7 @@ Minecraft Java Edition **1.21.1**、NeoForge **21.1.250**、MOD **20個**のク�
 
 GitHubの **Code → Download ZIP** はリポジトリ全体のアーカイブです。そのままImportせず、このページの取込用ZIPを使ってください。GitHubのファイル画面で取得する場合は、ZIPファイルの **Download raw file** を選びます。CI artifactやGitHub Releaseとしての配布は行っていません。
 
-ZIPは718 bytesで、SHA256は `048948e98b66f9d2057475e3f16027425700087251dab46f6054d085ed20d455` です。小さいのはMOD jarを含めず、CurseForge上の20個のファイルをmanifestで参照するためです。CIでは再生成バイトとの一致も確認します。取込と起動は未確認です。
+ZIPは718 bytesで、SHA256は `048948e98b66f9d2057475e3f16027425700087251dab46f6054d085ed20d455` です。小さいのはMOD jarを含めず、CurseForge上の20個のファイルをmanifestで参照するためです。CIでは再生成したZIP内の全ファイル内容との完全一致と、配布ZIPのSHA256を確認します。圧縮バイトは実行環境のzlib版で変わることがあります。取込と起動は未確認です。
 
 ## CurseForge Appで構成を手動再現する
 
@@ -22,7 +22,7 @@ ZIPは718 bytesで、SHA256は `048948e98b66f9d2057475e3f16027425700087251dab46f
 python3 scripts/local_pack.py --output /tmp/create-client-local-draft.zip
 ```
 
-出力はrootの `manifest.json` と空の `overrides/` のみです。CurseForgeのImportで使う形式の草案ですが、Appへの実際の取込は未検証です。生成処理はMODのダウンロードや実行をしません。生成ZIPを正式export用の `packs/` に置かないでください。`downloads/` の固定草案とSHA256はこの生成処理の結果で、構成変更時は両方を更新してCIの一致確認を通します。
+出力はrootの `manifest.json` と空の `overrides/` のみです。CurseForgeのImportで使う形式の草案ですが、Appへの実際の取込は未検証です。生成処理はMODのダウンロードや実行をしません。生成ZIPを正式export用の `packs/` に置かないでください。`downloads/` の固定草案とSHA256はこの生成処理の結果で、構成変更時はZIPとハッシュを更新してCIの内容一致確認を通します。
 
 ## 確認できたことと残る確認
 
