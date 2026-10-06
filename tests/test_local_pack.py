@@ -1,5 +1,6 @@
 """Verify the public reconstruction and reject unsafe or drifting references."""
 import copy
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -28,6 +29,17 @@ class LocalPackTests(unittest.TestCase):
             self.assertIsNone(archive.testzip())
             self.assertEqual(json.loads(archive.read('manifest.json')), self.manifest)
             self.assertEqual(archive.read('overrides/'), b'')
+
+    def test_download_matches_generated_bytes_and_checksum(self):
+        manifest = p.validate_profile(self.raw, self.catalogue)
+        root = p.PROFILE.parents[1]
+        archive = root / 'downloads' / 'create-client-local-draft.zip'
+        checksum = root / 'downloads' / 'create-client-local-draft.zip.sha256'
+        blob = archive.read_bytes()
+        self.assertEqual(blob, p.build(manifest))
+        self.assertEqual(len(blob), 718)
+        self.assertEqual(checksum.read_text(encoding='utf-8'),
+                         hashlib.sha256(blob).hexdigest() + '  create-client-local-draft.zip\n')
 
     def test_reject_duplicate_optional_boolean_and_extra_fields(self):
         changes = [lambda m: m['files'][1].update(projectID=m['files'][0]['projectID']),

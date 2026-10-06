@@ -11,6 +11,8 @@ python3 -m unittest discover -s tests -v
 python3 scripts/local_pack.py --output /tmp/create-client-local-draft.zip
 ```
 
+生成済みの[取込用ZIP](https://github.com/aiagate/minecraft-modpack-release/raw/refs/heads/feature/create-client-reconstruction-20261006/downloads/create-client-local-draft.zip)も取得できます。WindowsのCurseForgeで **Minecraft → Import → Import Profile .zip → Choose .zip file** を選ぶと、新しいプロフィールへ取り込みます。GitHubの **Code → Download ZIP** はリポジトリ全体のアーカイブで、取込用ZIPとは異なります。Appへの実際の取込・起動はまだ確認していません。
+
 `local_pack.py` はmanifestと一覧の整合性を検証し、ローカル取込用の草案を再現します。jarのダウンロード・実行・公開提出は行いません。この草案を `packs/` に置かず、公開提出には以下の正式export手順を使ってください。
 
 ## 初回設定はアプリのexportから始める
