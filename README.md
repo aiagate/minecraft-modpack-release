@@ -1,11 +1,22 @@
 # CurseForge ModPackを検証し、手動で提出する
 
-CurseForgeアプリでexportしたZIPを、そのままGitで管理するひな形です。Python 3.12以降の標準ライブラリだけで検証します。初期状態にはpack本体・投稿トークン・有効な提出設定は含まれません。
+Minecraft 1.21.1・NeoForge 21.1.250のクライアント構成（MOD 20個）と、CurseForgeアプリの正式exportを検証・手動提出する処理を管理します。Python 3.12以降の標準ライブラリを使います。公開済みのMODはファイルIDで参照し、jarや個人の接続情報は収録しません。投稿トークン・有効な提出設定・正式exportは未設定です。
+
+## クライアント構成を再現する
+
+[構成と導入案内](profiles/create-client-local/README.md)に、固定した20個のファイルIDと確認状況をまとめています。名称は仮です。ゲーム起動・サーバー独自設定は未確認です。
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 scripts/local_pack.py --output /tmp/create-client-local-draft.zip
+```
+
+`local_pack.py` はmanifestと一覧の整合性を検証し、ローカル取込用の草案を再現します。jarのダウンロード・実行・公開提出は行いません。この草案を `packs/` に置かず、公開提出には以下の正式export手順を使ってください。
 
 ## 初回設定はアプリのexportから始める
 
 1. CurseForge上の初回プロジェクトは自分で作成し、project IDを控えます。
-2. アプリで配布専用のプロファイルを用意し、必要なファイルだけを選んでexportします。生成されたmanifestは手編集しません。このスクリプトもmanifestの作成・修正・ZIPの再梱包は行いません。
+2. アプリで配布専用のプロファイルを用意し、必要なファイルだけを選んでexportします。生成されたmanifestは手編集しません。提出用の `release.py` もmanifestの作成・修正・ZIPの再梱包は行いません。
 3. ZIPをGitに追加する**前に**、全収録ファイルを確認します。ワールド、options.txt、ログ、認証情報、個人用サーバー情報を取り除く必要があれば、元プロファイルを修正してアプリから再exportします。設定ファイル内のドメイン名や任意の秘密値は完全には自動判定できないため、人による内容確認が必須です。
 4. 確認したZIPを `packs/pack.zip` に置きます。`packs/` には現行ZIPを1つだけ置き、旧版はGit履歴に残します。
 5. `cp release.example.json release.json` で設定を作り、project ID、export内のMinecraft版とloader ID、表示名を入力します。`game_version_names` はMinecraft版、対応Loader名、`Client` の3つです。公式Game Versions API `/api/game/versions` で正式名を確認してください。実在する版番号はこの例に埋めていません。
@@ -21,7 +32,7 @@ python3 scripts/release.py --zip packs/pack.zip
 
 ## 投稿はmainから手動実行する
 
-リポジトリは非公開で運用します。GitHub Actionsの `Manual CurseForge submission` をmainから実行し、まず `submit=false` で確認します。PRとpushの検証workflowは投稿secretを参照しません。
+このリポジトリは公開です。個人向け資料やサーバー情報は置かず、正式exportを追加する際も全内容を公開可能か確認します。GitHub Actionsの `Manual CurseForge submission` をmainから実行し、まず `submit=false` で確認します。PRとpushの検証workflowは投稿secretを参照しません。
 
 実提出を始めるときだけ、自分で発行した投稿用トークンをGitHub Actions Secret `CURSEFORGE_API_TOKEN` に登録し、`submit=true` を選びます。コード・設定・ZIPをレビューした信頼できるmainだけを使ってください。write権限を持つ人はworkflowを書き換えられるため、共同編集者を限定し、運用に応じてmainの保護や環境承認を追加してください。ひな形の作成ではSecrets登録や保護設定の変更は行いません。
 

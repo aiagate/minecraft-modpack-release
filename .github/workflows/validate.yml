@@ -14,6 +14,8 @@ jobs:
           persist-credentials: false
       - run: python3 -m unittest discover -s tests -v
       - run: python3 -m compileall -q scripts tests
+      - name: Build local reconstruction draft offline
+        run: python3 scripts/local_pack.py --output "$RUNNER_TEMP/create-client-local-draft.zip"
       - name: Validate current export if present
         shell: bash
         run: |
@@ -21,7 +23,7 @@ jobs:
           shopt -s nullglob
           packs=(packs/*.zip)
           if ((${#packs[@]} == 0)); then
-            echo 'Template only: no real export was validated.'
+            echo 'No official App export is present; local reconstruction is checked separately.'
           elif ((${#packs[@]} == 1)); then
             python3 scripts/release.py --zip "${packs[0]}"
           else
